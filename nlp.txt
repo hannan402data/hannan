@@ -1,0 +1,393 @@
+Prac 1
+
+# Applying Tokenization Stemming and Lemmatization on a given dataset.
+
+import nltk
+import nltk.corpus
+
+# nltk.download("punkt")
+# nltk.download("wordnet")
+
+
+# Tokenization
+
+from nltk.tokenize import word_tokenize
+
+sample = "Natural language processing (NLP) is a branch of artificial intelligence (AI) that enables computers to comprehend, generate, and manipulate human language. Natural language processing has the ability to interrogate the data with natural language text or voice."
+
+Sample_Tokens = word_tokenize(sample)
+print("Sample Tokens: \n", Sample_Tokens)
+print("\nType of Sample Tokens: \n", type(Sample_Tokens))
+print("\nLength of Sample Tokens: \n", len(Sample_Tokens))
+
+from nltk.probability import FreqDist
+
+FDist = FreqDist(Sample_Tokens)
+print("\nFrequency Distribution: \n", FDist)
+
+top5 = FDist.most_common(5)
+print("\nTop 5 Words: \n", top5)
+
+
+# Stemming
+
+from nltk.stem import PorterStemmer
+
+pst = PorterStemmer()
+
+print("\nStemming of Words: ")
+print("Giving: ", pst.stem("Giving"))
+print("Buying: ", pst.stem("Buying"))
+print("Studying: ", pst.stem("Studying"))
+print("Going: ", pst.stem("Going"))
+
+
+# Lemmatization
+
+from nltk.stem import WordNetLemmatizer
+
+lmt = WordNetLemmatizer()
+print("\nLemmatization of Words: ")
+print("Geese: ", lmt.lemmatize("geese"))
+print("Cacti: ", lmt.lemmatize("cacti"))
+
+Prac 2.1
+
+import spacy
+
+def pos_tagging(text):
+    nlp = spacy.load("en_core_web_sm")
+    doc = nlp(text)
+    tagged = [(token.text, token.pos_) for token in doc]
+    return tagged
+
+
+# Example Usage
+# text = "Alphabet INC. is the parent company of Google whose CEO is Sundar Pichai."
+text = "Quickly, the very happy dog barked at the mailman because it always loves to greet new people."
+tagged_text = pos_tagging(text)
+print("Input: ", text)
+print("Tagged Text:\n", tagged_text)
+
+Prac 2.2
+
+import spacy
+
+nlp = spacy.load("en_core_web_sm")
+
+text = "Alphabet inc. is the parent company of Google located in Mountain View, California whose CEO is Sundar Pichai since December 2019."
+doc = nlp(text)
+
+# Tokens
+print("Tokens: ")
+for token in doc:
+    print(token)
+
+
+# Entities
+print("\nEntities: ")
+for ent in doc.ents:
+    print(ent.text + " | " + ent.label_ + " | " + spacy.explain(ent.label_))
+
+Prac 3.1
+
+# Importing spacy library
+import spacy
+from spacy.matcher import Matcher
+
+# Initialize spacy word library
+nlp = spacy.load("en_core_web_sm")
+doc = nlp("2018 FIFA world cup : France won!!!")
+
+# print token on a specific index
+print("Token on index 2: ", doc[2])
+
+# Print token ranging between indices
+print("\nToken from index 2 to 5: ", doc[2:5])
+
+# Print POS using Spacy
+print("\nPOS Tagging: ")
+for token in doc:
+    print(token.i, " | ", token.text, " | ", token.pos, " | ", token.pos_)
+
+# Print the entities in the doc
+print("\nEntities: ")
+for ent in doc.ents:
+    print(ent.text, " | ", ent.label, " | ", ent.label_)
+
+# Getting all available entities in SpaCy
+print("\nAll Entities: ")
+print(nlp.get_pipe("ner").labels)
+
+# Pattern Matching
+pattern = [{"IS_DIGIT": True}, {"LOWER": "fifa"}, {"LOWER": "world"}, {"LOWER": "cup"}, {"IS_PUNCT": True}]
+matcher2 = Matcher(nlp.vocab)
+matcher2.add("fifa_pattern", [pattern])
+matcher2 = matcher2(doc)
+
+print("\nMatched Pattern: ")
+for match_id, start, end in matcher2:
+    print(doc[start:end])
+
+Prac 3.2
+
+from nltk import ngrams
+
+sentence = "Tony gave two $ to Peter, Bruce gave 500 € to Steve"
+print("Sentence: ", sentence)
+
+unigrams = ngrams(sentence.split(), 1)
+print("\nUnigrams: ")
+for grams in unigrams:
+    print(grams)
+
+bigrams = ngrams(sentence.split(), 2)
+print("\nBigrams: ")
+for grams in bigrams:
+    print(grams)
+
+trigrams = ngrams(sentence.split(), 3)
+print("\nTrigrams: ")
+for grams in trigrams:
+    print(grams)
+
+Prac 4
+
+import pandas as pd
+import re
+import nltk
+from nltk.corpus import stopwords
+from nltk.stem.porter import PorterStemmer
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import GaussianNB
+from sklearn.metrics import confusion_matrix
+
+dataset = [
+    ["I liked the movie", "positive"],
+    ["It's a good movie. Nice story", "positive"],
+    ["Hero's acting is bad but the heroine looks good. Overall nice movie.", "positive"],
+    ["Nice songs. But sadly the ending is boring", "negative"],
+    ["Sad and boring movie", "negative"],
+]
+
+dataset = pd.DataFrame(dataset)
+dataset.columns = ["Text", "Reviews"]
+# nltk.download("stopwords")
+stop_words = set(stopwords.words("english"))
+
+corpus = []
+for i in range(0, 5):
+    text = re.sub("[^a-zA-Z]", " ", dataset["Text"][i])
+    text = text.lower()
+    text = text.split()
+    ps = PorterStemmer()
+    text = [ps.stem(word) for word in text if not word in stop_words]
+    text = " ".join(text)
+    corpus.append(text)
+
+print("Corpus: \n", corpus)
+
+# Creating bag of words model
+cv = CountVectorizer(max_features=1500)
+X = cv.fit_transform(corpus).toarray()
+y = dataset.iloc[:, 1].values
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.25, random_state=0
+)
+classifier = GaussianNB()
+classifier.fit(X_train, y_train)
+y_pred = classifier.predict(X_test)
+cm = confusion_matrix(y_test, y_pred)
+print("\nConfusion Matrix: \n", cm)
+
+Prac 5
+
+def is_in_cartesian_prod(x, y, r):
+    return r in [i + j for i in x.split(',') for j in y.split(',')]
+
+def accept_cyk(w, G, S):
+    if w == 'ε':
+        return 'ε' in G[S]
+
+    n = len(w)
+    DP_table = [[''] * n for _ in range(n)]
+
+    # Initialise DP Table with rules of the form A -> a
+
+    for i in range(n):
+        for lhs in G.keys():
+            for rhs in G[lhs]:
+                if w[i] == rhs:
+                    DP_table[i][i] = lhs if not DP_table[i][i] else DP_table[i][i] + ',' + lhs
+
+    # Fill in the DP Table for subsequences of length 2 to n
+    for l in range(2, n + 1):
+        for i in range(n - l + 1):
+            j = i + l - 1
+            for k in range(i, j):
+                for lhs in G.keys():
+                    for rhs in G[lhs]:
+                        if is_in_cartesian_prod(DP_table[i][k], DP_table[k + 1][j], rhs):
+                            DP_table[i][j] = lhs if not DP_table[i][j] else DP_table[i][j] + ',' + lhs
+
+    # Check if Start Symbol is in the DP_Table[0][n-1]
+    return S in DP_table[0][n - 1]
+
+# Test Cases
+if __name__ == "__main__":
+    grammar = {
+        'NP': ['Det', 'Nom'],
+        'Nom': ['AP', 'Nom'],
+        'AP': ['Adv', 'A'],
+        'Det': ['a', 'an'],
+        'Adv': ['very', 'extremely'],
+        'A': ['heavy', 'orange', 'tall'],
+        'Nom': ['book', 'orange', 'man']
+    }
+
+    input_string = "A very heavy book"
+    # input_string = "A tall man"
+
+    start = 'NP'
+
+    if accept_cyk(input_string.split(), grammar, start):
+        print(f"'{input_string}' is accepted by the grammar")
+    else:
+        print(f"'{input_string}' is not accepted by the grammar")
+
+Prac 6
+
+import nltk
+from nltk import FreqDist
+from nltk.corpus import reuters
+from nltk.tokenize import word_tokenize
+
+nltk.download("reuters")
+nltk.download("punkt")
+
+corpus = reuters.raw()
+tokens = word_tokenize(corpus)
+word_freq = FreqDist(tokens)
+total_words = len(tokens)
+mle_prob = {word: count / total_words for word, count in word_freq.items()}
+
+example = "artificial"
+print(f"MLE Probability of '{example}': {mle_prob.get(example, 0)}")
+
+Prac 7
+
+import os
+import pickle
+import random
+import re
+
+import matplotlib.pyplot as plt
+import nltk
+import pandas as pd
+from nltk.classify.scikitlearn import SklearnClassifier
+from nltk.corpus import names, stopwords
+from nltk.tokenize import word_tokenize
+from sklearn import metrics
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import BernoulliNB, MultinomialNB
+
+# Download necessary NLTK resources
+nltk.download("names")
+nltk.download("stopwords")
+nltk.download("punkt")
+nltk.download("averaged_perceptron_tagger")
+
+# Importing the CSV file with the reviews
+data = pd.read_csv("dataset.csv")
+dataset = data[:2499]
+
+# Initialize lists to store words and documents
+all_words = []
+documents = []
+
+# Define stopwords and allowed word types
+stop_words = set(stopwords.words("english"))
+allowed_word_types = ["J"]
+
+
+# Define a function to preprocess each review
+def preprocess_review(review):
+    # Remove punctuations
+    cleaned = re.sub(r"[^(a-zA-Z)\s]", "", review)
+    # Tokenize
+    tokenized = word_tokenize(cleaned)
+    # Part-of-speech tagging
+    pos_tags = nltk.pos_tag(tokenized)
+    # Remove stopwords and extract adjectives
+    adjectives = [
+        w.lower()
+        for w, pos in pos_tags
+        if w.lower() not in stop_words and pos[0].lower() == "j"
+    ]
+    return adjectives
+
+
+# Process reviews
+for index, row in dataset.iterrows():
+    adjectives = preprocess_review(row["review"])
+    documents.append((adjectives, row["sentiment"]))
+    all_words.extend(adjectives)
+
+# Create frequency distribution of words
+all_words = nltk.FreqDist(all_words)
+print("All words:", all_words)
+
+# Plot the most common words
+if all_words:
+    all_words.plot(30, cumulative=False)
+    plt.show()
+else:
+    print("No words to plot.")
+
+# Extract the most common 1000 words as features
+word_features = list(all_words.keys())
+
+
+# Define a function to create feature sets
+def find_features(document):
+    words = set(document)
+    features = {}
+    for w in word_features:
+        features[w] = w in words
+    return features if features else {"contains_no_features": True}
+
+
+# Create feature sets
+featuresets = [(find_features(rev), category) for (rev, category) in documents]
+
+# Shuffle the feature sets
+random.shuffle(featuresets)
+
+# Split the data into training and testing sets
+train_set, test_set = train_test_split(featuresets, test_size=0.2, random_state=42)
+
+# Train and test Naive Bayes classifier
+classifier = nltk.NaiveBayesClassifier.train(train_set)
+print(
+    "Naive Bayes Classifier accuracy:",
+    (nltk.classify.accuracy(classifier, test_set)) * 100,
+)
+
+# Train and test Multinomial Naive Bayes classifier
+MNB_clf = SklearnClassifier(MultinomialNB())
+mnb_cls = MNB_clf.train(train_set)
+print(
+    "Multinomial Naive Bayes Classifier accuracy:",
+    (nltk.classify.accuracy(mnb_cls, test_set)) * 100,
+)
+
+# Train and test Bernoulli Naive Bayes classifier
+BNB_clf = SklearnClassifier(BernoulliNB())
+bnb_cls = BNB_clf.train(train_set)
+print(
+    "Bernoulli Naive Bayes Classifier accuracy:",
+    (nltk.classify.accuracy(bnb_cls, test_set)) * 100,
+)
+
